@@ -11,7 +11,7 @@
    ```sh
    python3 manage.py runserver
    ```
-6. Open the locahost <a href="http:localhost:8000">http://localhost:8000</a>
+6. Open the locahost <a href="http:127.0.0.1:8000">http://127.0.0.1:8000</a>
 7. Login using given credentials, username:`rishav00a`, password:`Rishav@123`
 
  
