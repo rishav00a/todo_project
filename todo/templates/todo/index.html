@@ -1,0 +1,206 @@
+
+
+<html>
+    <head>
+        <title>ToDo App</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+        <script>
+
+            function showAddTodoSection() {
+                $("#add_to_button_area").hide();
+                $("#add_todo_area").show();
+                
+            }
+            function updateToDo(id){
+                var updated_content =  $("#todo_content_"+id).val();
+                console.log(updated_content);
+                if(updated_content){
+                    var payload = {
+                        'id':id,
+                        "text":updated_content
+                    }
+
+                    $.ajax({
+                        type: "PATCH",
+                        url: "http://127.0.0.1:8000/api/todo_data",
+                        cache: false,
+                        data:payload,
+                        headers: {'X-CSRFToken': "{{ csrf_token }}"},
+                        success: function(data){
+                            location.reload();
+                        }
+                    });
+                }
+            }
+            function showToDoEdit(id){
+                console.log(id);
+                var old_content = $("#todo_label_"+id).html();
+                $("#todo_row_"+id).html(
+                    '\
+                    <input id="todo_content_'+id+'" value="'+old_content+'" class="form-control col col-10" ><br><button class="btn btn-primary col col-2" onclick=updateToDo('+id+')> Update </button>\
+                    '
+                );
+                console.log(id);
+
+
+            }
+            function createToDo() {
+                
+                var text = $("#todo_content").val();
+                if(text){
+
+                    var payload = {
+                        "text":text
+                    }
+
+                    $.ajax({
+                        type: "POST",
+                        url: "http://127.0.0.1:8000/api/todo_data",
+                        cache: false,
+                        data:payload,
+                        headers: {'X-CSRFToken': "{{ csrf_token }}"},
+                        success: function(data){
+                            location.reload();
+                        }
+                    });
+
+                }
+                
+                
+            }
+
+            function deleteToDo(id) {
+                var payload = {
+                    "id":id
+                }
+
+                $.ajax({
+                    type: "DELETE",
+                    url: "http://127.0.0.1:8000/api/todo_data",
+                    cache: false,
+                    data:payload,
+                    headers: {'X-CSRFToken': "{{ csrf_token }}"},
+                    success: function(data){
+                        location.reload();
+                    }
+                });
+                
+            }
+
+            function markToDoCompleted(id) {
+                var checked = $("#checkbox_"+id).prop('checked');
+
+                var payload = {
+                    "id":id,
+                    "is_completed":checked,
+                }
+
+                $.ajax({
+                    type: "PATCH",
+                    url: "http://127.0.0.1:8000/api/todo_data",
+                    cache: false,
+                    data:payload,
+                    headers: {'X-CSRFToken': "{{ csrf_token }}"},
+                    success: function(data){
+                        console.log(data);
+                    }
+                });
+            }
+            function fetchToDo() {
+                $("#tasks_list").html("");
+                $("#tasks_list").html("<p>Loading ...</p>");
+
+                $.ajax({
+                    type: "GET",
+                    url: "http://127.0.0.1:8000/api/todo_data",
+                    cache: false,
+                    success: function(data){
+                        $("#tasks_list").html("");
+                        $.each(data, function(i, item) {
+                            $("#tasks_list").append("\
+                                <tr class='form-check' id='todo_row_"+item.id+"'>\
+                                    <th scope='row'><input type='checkbox' class='form-check-input' "+ (item.is_completed? "checked" : "") +" onclick='markToDoCompleted("+item.id+")' data-id='"+item.id+"' id='checkbox_"+item.id+"'></input></th>\
+                                    <td class='form-check-label' id='todo_label_"+item.id+"'>"+item.text+"</td>\
+                                    <td><button class='btn' onclick=showToDoEdit("+item.id+")><i class='fa fa-pencil'></i></button><button class='btn' onclick='deleteToDo("+item.id+")'><i class='fa fa-trash' style='color:red'></i></button></td>\
+                                </tr>"
+                            );
+                        });
+                    }
+                });
+                
+            }
+            $(document).ready(function(){
+              fetchToDo();
+            });
+            </script>
+    </head>
+    <body>
+        <nav class="navbar navbar-inverse">
+            <div class="container-fluid">
+              <div class="navbar-header">
+                <a class="navbar-brand" href="#">MyToDo</a>
+              </div>
+              <ul class="nav navbar-nav">
+                <li class="active"><a href="#">Home</a></li>
+                
+              </ul>
+              <ul class="nav navbar-nav navbar-right">
+                {% if user.is_authenticated %}
+                <li><a href="{% url 'rest_framework:logout' %}?next=/"><span class="glyphicon glyphicon-log-out"></span> Logout</a></li>
+                {% else %}
+                <li><a href="{% url 'rest_framework:login' %}?next=/"><span class="glyphicon glyphicon-log-in"></span> Login</a></li>
+                {% endif %}
+              </ul>
+            </div>
+          </nav>
+
+          <div class="container">
+
+            <div class="jumbotron">
+                {% if user.is_authenticated %}
+
+                <h1>Hi, {{ user.first_name }}</h1>
+            
+                <p>Here's a summary of your tasks today !</p>
+                <div class="row container" style="text-align: right;" id="add_to_button_area"><button class="btn btn-primary" onclick="showAddTodoSection()"><i class="fa fa-plus"></i> Add New </button>
+                </div>
+                <div id="add_todo_area" class="container" hidden>
+                    <form id="add_to_form" onsubmit="createToDo()">
+                        <tr class="row"><input id="todo_content" placeholder="Add content here" class="form-control col col-10" ><br><button type="submit" class="btn btn-primary col col-2"> Add </button></tr>
+                    </form>
+                </div>
+
+                <p>
+                    <table class="table">
+                        <thead>
+                          <tr>
+                            <th scope="col">Complete</th>
+                            <th scope="col">Task</th>
+                            <th scope="col">Action</th>
+                            
+                          </tr>
+                        </thead>
+                        <tbody id="tasks_list">
+                          
+                          
+                        </tbody>
+                      </table>
+                  </p>
+                {% else %}
+
+                <h1>Kindly <a href="{% url 'rest_framework:login' %}?next=/">LogIn </a>to View/Change your ToDo</h1>
+
+                {% endif %}
+
+
+            </div>
+            
+          </div>
+    </body>
+</html>
